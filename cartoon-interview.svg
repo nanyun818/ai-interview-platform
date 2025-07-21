@@ -1,0 +1,19 @@
+<svg width="600" height="400" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="600" height="400" fill="#f5f5f5"/>
+  <!-- 面试官 -->
+  <circle cx="200" cy="180" r="50" fill="#ffd700"/>
+  <rect x="170" y="230" width="60" height="100" fill="#4a6fa5"/>
+  <rect x="150" y="330" width="100" height="15" fill="#8b4513"/>
+  <!-- 面试者 -->
+  <circle cx="400" cy="180" r="50" fill="#98fb98"/>
+  <rect x="370" y="230" width="60" height="100" fill="#ff6347"/>
+  <rect x="350" y="330" width="100" height="15" fill="#8b4513"/>
+  <!-- 桌子 -->
+  <rect x="150" y="345" width="300" height="10" fill="#a0522d"/>
+  <!-- 对话气泡 -->
+  <ellipse cx="200" cy="100" rx="80" ry="40" fill="white" stroke="#333" stroke-width="2"/>
+  <ellipse cx="400" cy="100" rx="80" ry="40" fill="white" stroke="#333" stroke-width="2"/>
+  <text x="160" y="105" font-family="Arial" font-size="14">欢迎参加面试</text>
+  <text x="360" y="105" font-family="Arial" font-size="14">谢谢！我准备好了</text>
+</svg>

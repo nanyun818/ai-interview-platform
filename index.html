@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI面试评估平台</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#165DFF',
+                        secondary: '#36D399',
+                        warning: '#FFAB00',
+                        danger: '#FF5252',
+                        dark: '#1E293B',
+                        light: '#F8FAFC'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style type="text/tailwindcss">
+        /* AI助手样式 */
+        #ai-assistant {
+            transition: all 0.3s ease;
+        }
+        #chat-messages .animate-bounce {
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .bg-gradient-blue {
+                background: linear-gradient(135deg, #165DFF 0%, #0F3AAA 100%);
+            }
+            .card-shadow {
+                box-shadow: 0 10px 25px -5px rgba(22, 93, 255, 0.1), 0 8px 10px -6px rgba(22, 93, 255, 0.05);
+            }
+            .btn-hover {
+                transition: all 0.3s ease;
+            }
+            .btn-hover:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 15px -3px rgba(22, 93, 255, 0.3);
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            .scale-hover {
+                transition: transform 0.3s ease;
+            }
+            .scale-hover:hover {
+                transform: scale(1.02);
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gray-50 text-dark min-h-screen flex flex-col">
+    <!-- 导航栏 -->
+    <nav id="navbar" class="fixed w-full z-50 transition-all duration-300 bg-white/90 backdrop-blur-sm shadow-sm">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="#" class="flex-shrink-0 flex items-center">
+                        <i class="fa fa-graduation-cap text-primary text-2xl mr-2"></i>
+                        <span class="text-xl font-semibold text-primary">AI面试助手</span>
+                    </a>
+                </div>
+                <div class="hidden md:flex items-center space-x-4">
+                    <a href="#home" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">首页</a>
+                    <a href="#interview" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">开始面试</a>
+                    <a href="#resume" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">简历分析</a>
+                    <a href="#results" class="text-gray-700 hover:text-primary px-3 py-2 rounded-md text-sm font-medium transition-colors">历史结果</a>
+                </div>
+                <div class="flex items-center">
+                    <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
+                        <i class="fa fa-moon-o text-gray-700"></i>
+                    </button>
+                    <script>
+                        function downloadReport() {
+                            window.location.href = '/download_report';
+                        }
+
+                        // 星火 AI 对话功能
+                        async function chatWithAI() {
+                            const message = document.getElementById('ai-message').value;
+                            try {
+                                const response = await fetch('http://localhost:8000/chat', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({message: message, position: document.getElementById("job-position").value})
+                                });
+                                const data = await response.json();
+                                console.log(data);
+                            } catch (error) {
+                                console.error('Error:', error);
+                            }
+                        }
+
+                        // 视频面试功能
+                        async function startVideoInterview() {
+                            const videoInput = document.getElementById('video-input');
+                            const file = videoInput.files[0];
+                            const formData = new FormData();
+                            formData.append('video', file);
+                            try {
+                                const response = await fetch('http://localhost:5000/video', {
+                                    method: 'POST',
+                                    body: formData
+                                });
+                                const data = await response.json();
+                                console.log(data);
+                            } catch (error) {
+                                console.error('Error:', error);
+                            }
+                        }
+                    </script>
+                    <button class="ml-4 md:hidden p-2 rounded-md text-gray-700 hover:text-primary hover:bg-gray-100 focus:outline-none">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 移动端菜单 -->
+    <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute w-full">
+        <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <a href="#home" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">首页</a>
+            <a href="#interview" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">开始面试</a>
+            <a href="#resume" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">简历分析</a>
+            <a href="#results" class="block px-3 py-2 rounded-md text-base font-medium text-gray-700 hover:text-primary hover:bg-gray-50">历史结果</a>
+        </div>
+    </div>
+
+    <!-- 英雄区域 -->
+    <section id="home" class="pt-24 pb-16 md:pt-32 md:pb-24 bg-gradient-blue text-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row items-center">
+                <div class="md:w-1/2 mb-10 md:mb-0">
+                    <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold leading-tight text-shadow mb-4">
+                        智能面试评估<br>开启职业新可能
+                    </h1>
+                    <p class="text-lg md:text-xl opacity-90 mb-8 max-w-lg">
+                        利用先进的AI技术，提供实时面部表情分析、语音识别和专业能力评估，帮助你在面试中脱颖而出。
+                    </p>
+                    <div class="flex flex-col sm:flex-row space-y-4 sm:space-y-0 sm:space-x-4">
+  <button id="shareButton" class="bg-green-600 hover:bg-green-700 text-white font-medium px-6 py-3 rounded-lg shadow-lg btn-hover text-center">
+    生成分享链接
+  </button>
+                        <a href="#interview" class="bg-white text-primary font-medium px-6 py-3 rounded-lg shadow-lg btn-hover text-center">
+                            开始面试 <i class="fa fa-arrow-right ml-2"></i>
+                        </a>
+                        <a href="#resume" class="bg-transparent border-2 border-white text-white font-medium px-6 py-3 rounded-lg hover:bg-white/10 transition-colors text-center">
+                            分析简历 <i class="fa fa-file-text-o ml-2"></i>
+                        </a>
+                    </div>
+                </div>
+                <div class="md:w-1/2 flex justify-center">
+                    <div class="relative">
+                        <div class="absolute -top-4 -left-4 w-64 h-64 bg-primary/20 rounded-full blur-3xl"></div>
+                        <div class="absolute -bottom-8 -right-8 w-72 h-72 bg-secondary/20 rounded-full blur-3xl"></div>
+                        <img src="https://images.pexels.com/photos/3416721/pexels-photo-3416721.jpeg?auto=compress&cs=tinysrgb&w=600" alt="AI面试场景" class="rounded-xl shadow-2xl relative z-10 w-full max-w-md scale-hover">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 功能介绍 -->
+    <section class="py-16 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-16">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">智能面试评估系统</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">我们的AI技术能够从多个维度评估你的面试表现，帮助你发现优势与不足</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <div class="bg-light rounded-xl p-6 card-shadow scale-hover">
+                    <div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa fa-video-camera text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">面部表情分析</h3>
+                    <p class="text-gray-600">实时分析你的微表情，评估自信度、专注度和亲和力，提供专业的肢体语言建议。</p>
+                </div>
+
+                <div class="bg-light rounded-xl p-6 card-shadow scale-hover">
+                    <div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa fa-microphone text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">语音情感识别</h3>
+                    <p class="text-gray-600">分析你的语音语调、语速和用词，评估专业度和沟通能力，提供表达优化建议。</p>
+                </div>
+
+                <div class="bg-light rounded-xl p-6 card-shadow scale-hover">
+                    <div class="w-14 h-14 bg-primary/10 rounded-lg flex items-center justify-center mb-6">
+                        <i class="fa fa-line-chart text-primary text-2xl"></i>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3">综合能力评估</h3>
+                    <p class="text-gray-600">基于面试表现生成详细的能力雷达图，明确优势领域和需要改进的方向。</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 面试区域 -->
+    <section id="interview" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">开始模拟面试</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">选择面试岗位，开始模拟面试，获取实时反馈和专业建议</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="mb-6">
+                            <label for="job-position" class="block text-sm font-medium text-gray-700 mb-2">选择面试岗位</label>
+                            <select id="job-position" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary focus:ring focus:ring-primary/20 transition-colors">
+                                <option value="ai-engineer">人工智能工程师</option>
+                                <option value="frontend-developer">前端开发工程师</option>
+                                <option value="backend-developer">后端开发工程师</option>
+                                <option value="data-analyst">数据分析师</option>
+                                <option value="product-manager">产品经理</option>
+                                <option value="ui-ux-designer">UI/UX设计师</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">面试难度</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="difficulty" value="easy" class="form-radio text-primary focus:ring-primary/20" checked>
+                                    <span class="ml-2">初级</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="difficulty" value="medium" class="form-radio text-primary focus:ring-primary/20">
+                                    <span class="ml-2">中级</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="difficulty" value="hard" class="form-radio text-primary focus:ring-primary/20">
+                                    <span class="ml-2">高级</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <div class="mb-6">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">面试时长</label>
+                            <div class="flex items-center space-x-4">
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="duration" value="10" class="form-radio text-primary focus:ring-primary/20" checked>
+                                    <span class="ml-2">10分钟</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="duration" value="20" class="form-radio text-primary focus:ring-primary/20">
+                                    <span class="ml-2">20分钟</span>
+                                </label>
+                                <label class="inline-flex items-center">
+                                    <input type="radio" name="duration" value="30" class="form-radio text-primary focus:ring-primary/20">
+                                    <span class="ml-2">30分钟</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <button id="start-interview" class="w-full bg-primary text-white font-medium py-3 px-4 rounded-lg shadow btn-hover flex items-center justify-center">
+                            <i class="fa fa-play-circle mr-2"></i> 开始面试
+                        </button>
+                    </div>
+
+                    <div class="relative">
+                        <div id="interview-container" class="hidden">
+                            <div class="aspect-video bg-gray-100 rounded-lg overflow-hidden relative mb-4">
+                                <video id="interview-video" autoplay muted playsinline class="w-full h-full object-cover"></video>
+                                <div id="facial-feedback" class="absolute bottom-0 left-0 right-0 bg-dark/60 text-white p-3 text-sm">
+                                    <div class="flex justify-between">
+                                        <div>
+                                            <span class="text-secondary">自信度:</span> <span id="confidence-level">60%</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-warning">专注度:</span> <span id="focus-level">75%</span>
+                                        </div>
+                                        <div>
+                                            <span class="text-primary">亲和力:</span> <span id="charm-level">80%</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-4">
+                                <h3 class="font-medium text-gray-700 mb-2">面试问题</h3>
+                                <div id="interview-question" class="bg-gray-50 p-4 rounded-lg min-h-[60px]">
+                                    请简要介绍一下你在人工智能领域的项目经验。
+                                </div>
+                            </div>
+
+                            <div class="flex space-x-3">
+                                <button id="next-question" class="flex-1 bg-primary text-white font-medium py-2 px-4 rounded-lg shadow btn-hover">
+                                    <i class="fa fa-arrow-right mr-1"></i> 下一题
+                                </button>
+                                <button id="stop-interview" class="bg-danger text-white font-medium py-2 px-4 rounded-lg shadow btn-hover">
+                                    <i class="fa fa-stop-circle mr-1"></i> 结束面试
+                                </button>
+                            </div>
+                        </div>
+
+                        <div id="pre-interview" class="aspect-video bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center flex-col p-8 text-center">
+                            <i class="fa fa-video-camera text-gray-300 text-5xl mb-4"></i>
+                            <p class="text-gray-500 mb-6">点击"开始面试"按钮，系统将启动摄像头和麦克风进行面试评估</p>
+                            <div class="flex space-x-3">
+                                <div class="flex items-center">
+                                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                                    <span class="text-sm text-gray-600">面部表情分析</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                                    <span class="text-sm text-gray-600">语音情感识别</span>
+                                </div>
+                                <div class="flex items-center">
+                                    <i class="fa fa-check-circle text-secondary mr-2"></i>
+                                    <span class="text-sm text-gray-600">专业能力评估</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 简历分析区域 -->
+    <section id="resume" class="py-16 bg-white">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">简历智能分析</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">上传你的简历，获取AI分析报告和专业优化建议</p>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-lg p-6 md:p-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                        <div class="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-primary transition-colors cursor-pointer" id="resume-upload-area">
+                            <i class="fa fa-file-text-o text-4xl text-gray-400 mb-4"></i>
+                            <h3 class="text-lg font-medium text-gray-700 mb-2">拖放简历文件到此处</h3>
+                            <p class="text-sm text-gray-500 mb-4">或者点击选择文件</p>
+                            <input type="file" id="resume-upload" accept=".pdf,.doc,.docx" class="hidden">
+                            <button id="upload-button" class="bg-primary/10 text-primary font-medium py-2 px-4 rounded-lg inline-flex items-center">
+                                <i class="fa fa-upload mr-2"></i> 选择文件
+                            </button>
+                        </div>
+
+                        <div id="uploaded-resume" class="hidden mt-6">
+                            <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                                <div class="flex items-center">
+                                    <i class="fa fa-file-pdf-o text-danger text-xl mr-3"></i>
+                                    <div>
+                                        <h4 id="resume-filename" class="font-medium text-gray-800">resume.pdf</h4>
+                                        <p class="text-xs text-gray-500">2.4 MB</p>
+                                    </div>
+                                </div>
+                                <button id="analyze-resume" class="bg-primary text-white font-medium py-1.5 px-4 rounded-lg shadow btn-hover">
+                                    <i class="fa fa-bar-chart mr-1"></i> 分析简历
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="resume-analysis-results" class="hidden">
+                        <h3 class="text-xl font-semibold mb-4">简历分析结果</h3>
+                        
+                        <div class="mb-6">
+                            <div class="flex justify-between mb-2">
+                                <h4 class="font-medium text-gray-700">简历评分</h4>
+                                <span class="text-2xl font-bold text-primary">78<span class="text-sm">/100</span></span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-2.5">
+                                <div class="bg-primary h-2.5 rounded-full" style="width: 78%"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-700 mb-2">优势</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li class="flex items-start">
+                                        <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                                        <span>工作经验丰富</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                                        <span>项目成果显著</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa fa-check text-secondary mt-1 mr-2"></i>
+                                        <span>技能匹配度高</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="bg-gray-50 p-4 rounded-lg">
+                                <h4 class="font-medium text-gray-700 mb-2">改进建议</h4>
+                                <ul class="text-sm text-gray-600 space-y-1">
+                                    <li class="flex items-start">
+                                        <i class="fa fa-exclamation-circle text-warning mt-1 mr-2"></i>
+                                        <span>增加量化成果数据</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa fa-exclamation-circle text-warning mt-1 mr-2"></i>
+                                        <span>补充相关证书</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fa fa-exclamation-circle text-warning mt-1 mr-2"></i>
+                                        <span>优化排版格式</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 rounded-lg mb-6">
+                            <h4 class="font-medium text-gray-700 mb-3">能力雷达图</h4>
+                            <div class="h-64">
+                                <canvas id="resume-radar-chart"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="bg-gray-50 p-4 rounded-lg">
+                            <h4 class="font-medium text-gray-700 mb-2">专业建议</h4>
+                            <p class="text-sm text-gray-600">根据你的简历内容和目标岗位，建议你突出展示与人工智能相关的项目经验，特别是涉及深度学习和自然语言处理的部分。增加具体的量化成果，如模型准确率提升、处理数据规模等。同时，考虑添加相关证书如TensorFlow开发者认证等，以增强竞争力。</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 面试结果区域 -->
+    <section id="results" class="py-16 bg-gray-50">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center mb-12">
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-dark mb-4">面试结果分析</h2>
+                <p class="text-gray-600 max-w-2xl mx-auto">查看你的面试表现评估和详细分析报告</p>
+            </div>
+
+            <div id="results-container" class="hidden">
+                <div class="bg-white rounded-xl shadow-lg p-6 md:p-8 mb-8">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between mb-8">
+                        <div>
+                            <h3 class="text-2xl font-bold text-dark mb-2">面试评估报告</h3>
+                            <p class="text-gray-600">面试岗位：人工智能工程师</p>
+                            <p class="text-gray-500 text-sm">面试时间：2025年7月1日 14:30</p>
+                        </div>
+                        <div class="mt-4 md:mt-0">
+                            <div class="flex items-center">
+                                <div class="text-4xl font-bold text-primary mr-4">82<span class="text-sm">/100</span></div>
+                                <div>
+                                    <div class="text-sm text-gray-600">综合评分</div>
+                                    <div class="flex items-center">
+                                        <div class="text-xs text-gray-500 mr-2">面试表现等级：</div>
+                                        <div class="text-sm font-medium text-secondary">良好</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-4">能力评估雷达图</h4>
+                            <div class="h-80">
+                                <canvas id="interview-radar-chart"></canvas>
+                            </div>
+                        </div>
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-4">表现评分</h4>
+                            <div class="space-y-4">
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">专业知识</span>
+                                        <span class="text-sm font-medium text-primary">85%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 85%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">沟通表达</span>
+                                        <span class="text-sm font-medium text-primary">78%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 78%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">问题解决</span>
+                                        <span class="text-sm font-medium text-primary">88%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 88%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">团队协作</span>
+                                        <span class="text-sm font-medium text-primary">75%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 75%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="flex justify-between mb-1">
+                                        <span class="text-sm font-medium text-gray-700">创新思维</span>
+                                        <span class="text-sm font-medium text-primary">80%</span>
+                                    </div>
+                                    <div class="w-full bg-gray-200 rounded-full h-2">
+                                        <div class="bg-primary h-2 rounded-full" style="width: 80%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-6 rounded-xl mb-8">
+                        <h4 class="font-semibold text-gray-800 mb-4">关键改进建议</h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="flex">
+                                <div class="bg-warning/10 p-3 rounded-lg mr-4">
+                                    <i class="fa fa-lightbulb-o text-warning text-xl"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-medium text-gray-800 mb-1">沟通表达</h5>
+                                    <p class="text-sm text-gray-600">在回答技术问题时，可以更加简洁明了地表达核心观点，减少不必要的铺垫。适当增加一些实际案例来支持你的回答。</p>
+                                </div>
+                            </div>
+                            <div class="flex">
+                                <div class="bg-warning/10 p-3 rounded-lg mr-4">
+                                    <i class="fa fa-lightbulb-o text-warning text-xl"></i>
+                                </div>
+                                <div>
+                                    <h5 class="font-medium text-gray-800 mb-1">团队协作</h5>
+                                    <p class="text-sm text-gray-600">在描述团队项目时，可以更多地强调你在团队中的角色和贡献，以及如何解决团队内部的挑战和冲突。</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 p-6 rounded-xl">
+                        <h4 class="font-semibold text-gray-800 mb-4">面试官AI总结</h4>
+                        <p class="text-gray-600 mb-4">
+                            候选人在专业知识和问题解决能力方面表现出色，对人工智能领域的核心概念有深入理解，能够清晰阐述复杂的技术问题。在沟通表达上，虽然逻辑清晰，但可以更加简洁和具体。团队协作方面，候选人展示了一定的合作能力，但可以进一步强调个人贡献和领导能力。
+                        </p>
+                        <p class="text-gray-600">
+                            建议候选人在未来的面试中，更加突出自己的独特价值和成就，使用具体的数据和案例来支持自己的观点。同时，加强对行业最新趋势和技术的了解，展示持续学习的能力。
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex justify-center">
+                    <button id="download-report-btn" class="bg-primary text-white font-medium py-3 px-6 rounded-lg shadow btn-hover" onclick="downloadReport()">
+                        <i class="fa fa-download mr-2"></i> 下载完整报告
+                    </button>
+                </div>
+            </div>
+
+            <div id="no-results" class="bg-white rounded-xl shadow-lg p-8 text-center">
+                <i class="fa fa-bar-chart text-gray-300 text-5xl mb-4"></i>
+                <h3 class="text-xl font-semibold text-gray-800 mb-2">暂无面试结果</h3>
+                <p class="text-gray-600 mb-6">完成面试后，你将在这里看到详细的评估报告和改进建议</p>
+                <a href="#interview" class="inline-flex items-center text-primary font-medium">
+                    开始面试 <i class="fa fa-arrow-right ml-2"></i>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- 页脚 -->
+    <footer class="bg-dark text-white py-12">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center mb-4">
+                        <i class="fa fa-graduation-cap text-primary text-2xl mr-2"></i>
+                        <span class="text-xl font-semibold">AI面试助手</span>
+                    </div>
+                    <p class="text-gray-400 text-sm">利用先进AI技术，提升你的面试表现，助力职业发展。</p>
+                    <div class="flex space-x-4 mt-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weixin text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-weibo text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition-colors">
+                            <i class="fa fa-linkedin text-xl"></i>
+                        </a>
+                    </div>
+                </div>
+                <div>
+                    <h4 class="text-lg font-medium mb-4">功能</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#interview" class="hover:text-primary transition-colors">模拟面试</a></li>
+                        <li><a href="#resume" class="hover:text-primary transition-colors">简历分析</a></li>
+                        <li><a href="#results" class="hover:text-primary transition-colors">面试报告</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">能力提升</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-medium mb-4">关于我们</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#" class="hover:text-primary transition-colors">公司介绍</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">联系我们</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">隐私政策</a></li>
+                        <li><a href="#" class="hover:text-primary transition-colors">使用条款</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-lg font-medium mb-4">联系我们</h4>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center">
+                            <i class="fa fa-envelope-o mr-2"></i>
+                            <span>support@aiinterview.com</span>
+                        </li>
+                        <li class="flex items-center">
+                            <i class="fa fa-phone mr-2"></i>
+                            <span>400-123-4567</span>
+                        </li>
+                        <li class="flex items-start">
+                            <i class="fa fa-map-marker mr-2 mt-1"></i>
+                            <span>北京市海淀区中关村科技园区</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <div class="border-t border-gray-800 mt-8 pt-8 text-center text-gray-500 text-sm">
+                <p>&copy; 2025 AI面试助手. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 模态框 -->
+    <div id="loading-modal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-lg p-6 max-w-md w-full">
+            <div class="text-center">
+                <div class="inline-block animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent mb-4"></div>
+                <h3 class="text-lg font-medium text-gray-800 mb-2">处理中，请稍候</h3>
+                <p class="text-gray-500" id="loading-message">正在分析你的面试表现...</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 导航栏滚动效果
+        const navbar = document.getElementById('navbar');
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 10) {
+                navbar.classList.add('shadow-md');
+                navbar.classList.remove('bg-white/90');
+                navbar.classList.add('bg-white');
+            } else {
+                navbar.classList.remove('shadow-md');
+                navbar.classList.add('bg-white/90');
+                navbar.classList.remove('bg-white');
+            }
+        });
+
+        // 移动端菜单切换
+        const mobileMenuButton = document.querySelector('.fa-bars').parentElement;
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                if (targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    window.scrollTo({
+                        top: targetElement.offsetTop - 80,
+                        behavior: 'smooth'
+                    });
+                    
+                    // 关闭移动端菜单
+                    if (!mobileMenu.classList.contains('hidden')) {
+                        mobileMenu.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        // 面试区域交互
+        const startInterviewButton = document.getElementById('start-interview');
+        const preInterview = document.getElementById('pre-interview');
+        const interviewContainer = document.getElementById('interview-container');
+        const interviewVideo = document.getElementById('interview-video');
+        const nextQuestionButton = document.getElementById('next-question');
+        const stopInterviewButton = document.getElementById('stop-interview');
+        const confidenceLevel = document.getElementById('confidence-level');
+        const focusLevel = document.getElementById('focus-level');
+        const charmLevel = document.getElementById('charm-level');
+        const loadingModal = document.getElementById('loading-modal');
+        const loadingMessage = document.getElementById('loading-message');
+        const resultsContainer = document.getElementById('results-container');
+        const noResults = document.getElementById('no-results');
+
+        // 问题库
+        const questions = [
+            "请简要介绍一下你在人工智能领域的项目经验。",
+            "你熟悉哪些深度学习框架？它们各自的优缺点是什么？",
+            "请解释一下Transformer模型的工作原理。",
+            "在处理不平衡数据集时，你会采用哪些策略？",
+            "如何评估一个机器学习模型的性能？",
+            "请描述一次你解决复杂技术问题的经历。",
+            "你对大语言模型有什么理解？它们的应用场景有哪些？",
+            "在团队项目中，你通常扮演什么角色？",
+            "你如何保持对人工智能领域最新技术的学习和了解？",
+            "如果你负责一个AI项目，你会如何规划和执行？"
+        ];
+
+        let currentQuestionIndex = 0;
+        let mediaStream = null;
+
+        startInterviewButton.addEventListener('click', async () => {
+            try {
+                // 显示加载状态
+                startInterviewButton.innerHTML = '<i class="fa fa-spinner fa-spin mr-2"></i> 启动中...';
+                startInterviewButton.disabled = true;
+                
+                // 获取摄像头和麦克风权限
+                mediaStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { width: { ideal: 1280 }, height: { ideal: 720 } },
+                    audio: true
+                });
+                
+                // 显示面试界面
+                preInterview.classList.add('hidden');
+                interviewContainer.classList.remove('hidden');
+                interviewVideo.srcObject = mediaStream;
+                
+                // 设置第一个问题
+                document.getElementById('interview-question').textContent = questions[currentQuestionIndex];
+                
+                // 重置按钮状态
+                startInterviewButton.innerHTML = '<i class="fa fa-play-circle mr-2"></i> 开始面试';
+                startInterviewButton.disabled = false;
+                
+                // 模拟实时分析数据
+                simulateAnalysis();
+            } catch (err) {
+                console.error("Error accessing media devices:", err);
+                
+                // 错误信息分类处理
+                let errorMessage = "无法访问摄像头和麦克风，请确保您已授予权限。";
+                if (err.name === 'NotAllowedError') {
+                    errorMessage = "您拒绝了摄像头和麦克风访问请求，请刷新页面并授予权限。";
+                } else if (err.name === 'NotFoundError') {
+                    errorMessage = "未检测到摄像头或麦克风设备，请确保您的设备已正确连接。";
+                } else if (err.name === 'NotReadableError') {
+                    errorMessage = "摄像头或麦克风正被其他应用使用，请关闭相关应用后重试。";
+                }
+                
+                alert(errorMessage);
+                
+                // 重置按钮状态
+                startInterviewButton.innerHTML = '<i class="fa fa-play-circle mr-2"></i> 开始面试';
+                startInterviewButton.disabled = false;
+            }
+        });
+
+        // 模拟实时分析数据
+        function simulateAnalysis() {
+            setInterval(() => {
+                // 随机更新分析数据
+                confidenceLevel.textContent = `${Math.floor(Math.random() * 20) + 60}%`;
+                focusLevel.textContent = `${Math.floor(Math.random() * 20) + 65}%`;
+                charmLevel.textContent = `${Math.floor(Math.random() * 15) + 70}%`;
+            }, 2000);
+        }
+
+        // 下一题
+        nextQuestionButton.addEventListener('click', () => {
+            currentQuestionIndex++;
+            if (currentQuestionIndex < questions.length) {
+                document.getElementById('interview-question').textContent = questions[currentQuestionIndex];
+            } else {
+                // 问题问完了，结束面试
+                stopInterviewButton.click();
+            }
+        });
+
+        // 结束面试
+        stopInterviewButton.addEventListener('click', () => {
+            // 停止媒体流
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(track => track.stop());
+                mediaStream = null;
+            }
+            
+            // 显示加载模态框
+            loadingModal.classList.remove('hidden');
+            loadingMessage.textContent = "正在生成面试评估报告...";
+            
+            // 模拟处理时间
+            setTimeout(() => {
+                // 隐藏加载模态框
+                loadingModal.classList.add('hidden');
+                
+                // 隐藏面试界面，显示结果
+                interviewContainer.classList.add('hidden');
+                preInterview.classList.remove('hidden');
+                noResults.classList.add('hidden');
+                resultsContainer.classList.remove('hidden');
+                
+                // 初始化雷达图
+                initInterviewRadarChart();
+                
+                // 重置问题索引
+                currentQuestionIndex = 0;
+            }, 3000);
+        });
+
+        // 简历上传区域
+        const resumeUploadArea = document.getElementById('resume-upload-area');
+        const resumeUpload = document.getElementById('resume-upload');
+        const uploadButton = document.getElementById('upload-button');
+        const uploadedResume = document.getElementById('uploaded-resume');
+        const resumeFilename = document.getElementById('resume-filename');
+        const analyzeResumeButton = document.getElementById('analyze-resume');
+        const resumeAnalysisResults = document.getElementById('resume-analysis-results');
+
+        resumeUploadArea.addEventListener('click', () => {
+            resumeUpload.click();
+        });
+
+        uploadButton.addEventListener('click', () => {
+            resumeUpload.click();
+        });
+
+        resumeUpload.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                resumeFilename.textContent = file.name;
+                uploadedResume.classList.remove('hidden');
+            }
+        });
+
+        // 拖放上传
+        resumeUploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            resumeUploadArea.classList.add('border-primary');
+            resumeUploadArea.classList.add('bg-primary/5');
+        });
+
+        resumeUploadArea.addEventListener('dragleave', () => {
+            resumeUploadArea.classList.remove('border-primary');
+            resumeUploadArea.classList.remove('bg-primary/5');
+        });
+
+        resumeUploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            resumeUploadArea.classList.remove('border-primary');
+            resumeUploadArea.classList.remove('bg-primary/5');
+            
+            if (e.dataTransfer.files.length > 0) {
+                const file = e.dataTransfer.files[0];
+                resumeFilename.textContent = file.name;
+                uploadedResume.classList.remove('hidden');
+            }
+        });
+
+        // 分析简历
+        analyzeResumeButton.addEventListener('click', () => {
+            // 显示加载模态框
+            loadingModal.classList.remove('hidden');
+            loadingMessage.textContent = "正在分析您的简历...";
+            
+            // 模拟处理时间
+            setTimeout(() => {
+                // 隐藏加载模态框
+                loadingModal.classList.add('hidden');
+                
+                // 显示分析结果
+                resumeAnalysisResults.classList.remove('hidden');
+                
+                // 初始化简历雷达图
+                initResumeRadarChart();
+            }, 3000);
+        });
+
+        // 初始化面试雷达图
+        function initInterviewRadarChart() {
+            const ctx = document.getElementById('interview-radar-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['专业知识', '沟通表达', '问题解决', '团队协作', '创新思维', '抗压能力'],
+                    datasets: [{
+                        label: '你的能力',
+                        data: [85, 78, 88, 75, 80, 72],
+                        backgroundColor: 'rgba(22, 93, 255, 0.2)',
+                        borderColor: 'rgba(22, 93, 255, 1)',
+                        pointBackgroundColor: 'rgba(22, 93, 255, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(22, 93, 255, 1)'
+                    }, {
+                        label: '岗位要求',
+                        data: [90, 85, 85, 80, 85, 85],
+                        backgroundColor: 'rgba(22, 93, 255, 0.05)',
+                        borderColor: 'rgba(22, 93, 255, 0.5)',
+                        pointBackgroundColor: 'rgba(22, 93, 255, 0.5)',
+                        pointBorderColor: 'rgba(255, 255, 255, 0.7)',
+                        pointHoverBackgroundColor: 'rgba(255, 255, 255, 0.7)',
+                        pointHoverBorderColor: 'rgba(22, 93, 255, 0.7)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 50,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // 初始化简历雷达图
+        function initResumeRadarChart() {
+            const ctx = document.getElementById('resume-radar-chart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['工作经验', '教育背景', '技能匹配', '项目成果', '证书资质', '行业相关性'],
+                    datasets: [{
+                        label: '简历评分',
+                        data: [85, 75, 90, 80, 65, 78],
+                        backgroundColor: 'rgba(22, 93, 255, 0.2)',
+                        borderColor: 'rgba(22, 93, 255, 1)',
+                        pointBackgroundColor: 'rgba(22, 93, 255, 1)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgba(22, 93, 255, 1)'
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 50,
+                            suggestedMax: 100
+                        }
+                    }
+                }
+            });
+        }
+
+        // 主题切换
+        const themeToggle = document.getElementById('theme-toggle');
+        let darkMode = false;
+        
+        themeToggle.addEventListener('click', () => {
+            darkMode = !darkMode;
+            if (darkMode) {
+                document.body.classList.add('bg-gray-900');
+                document.body.classList.add('text-white');
+                themeToggle.innerHTML = '<i class="fa fa-sun-o text-yellow-400"></i>';
+            } else {
+                document.body.classList.remove('bg-gray-900');
+                document.body.classList.remove('text-white');
+                themeToggle.innerHTML = '<i class="fa fa-moon-o text-gray-700"></i>';
+            }
+        });
+    </script>
+<script>
+  // 分享链接功能
+  document.getElementById('shareButton').addEventListener('click', async () => {
+    try {
+      const response = await fetch('/generate_share_link');
+      const data = await response.json();
+      const shareUrl = data.share_url;
+      
+      // 复制到剪贴板
+      await navigator.clipboard.writeText(shareUrl);
+      
+      // 显示成功提示
+      alert('分享链接已复制到剪贴板: ' + shareUrl);
+    } catch (error) {
+      console.error('生成分享链接失败:', error);
+      alert('生成分享链接失败，请重试');
+    }
+  });
+</script>
+</body>
+</html>
+    

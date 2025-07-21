@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>测试中文字体显示</title>
+    <style>
+        body {
+            font-family: 'SimHei', 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .font-test {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        .simhei {
+            font-family: 'SimHei', sans-serif;
+        }
+        .simsun {
+            font-family: 'SimSun', serif;
+        }
+        .download-link {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 20px;
+        }
+        .download-link:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+    <h1>测试中文字体显示</h1>
+
+    <div class="font-test">
+        <h2>默认字体</h2>
+        <p>这是一段测试文本，用于验证中文字体是否正确显示。</p>
+    </div>
+
+    <div class="font-test simhei">
+        <h2>SimHei 字体</h2>
+        <p>这是一段测试文本，用于验证中文字体是否正确显示。</p>
+    </div>
+
+    <div class="font-test simsun">
+        <h2>SimSun 字体</h2>
+        <p>这是一段测试文本，用于验证中文字体是否正确显示。</p>
+    </div>
+
+    <a href="downloaded_report.pdf" class="download-link" target="_blank">查看生成的报告</a>
+
+    <script>
+        // 检查字体是否可用的简单方法
+        function checkFontAvailability(fontName) {
+            // 创建两个元素
+            const test = document.createElement('div');
+            const reference = document.createElement('div');
+
+            // 设置样式
+            test.style.fontFamily = fontName;
+            reference.style.fontFamily = 'sans-serif';
+
+            // 设置相同的文本和大小
+            test.style.fontSize = '20px';
+            reference.style.fontSize = '20px';
+            test.textContent = '测试';
+            reference.textContent = '测试';
+
+            // 隐藏元素
+            test.style.position = 'absolute';
+            test.style.left = '-9999px';
+            reference.style.position = 'absolute';
+            reference.style.left = '-9999px';
+
+            // 添加到文档
+            document.body.appendChild(test);
+            document.body.appendChild(reference);
+
+            // 比较宽度
+            const testWidth = test.offsetWidth;
+            const referenceWidth = reference.offsetWidth;
+
+            // 清理
+            document.body.removeChild(test);
+            document.body.removeChild(reference);
+
+            // 如果宽度不同，说明字体可用
+            return testWidth !== referenceWidth;
+        }
+
+        // 测试字体
+        window.onload = function() {
+            const simheiAvailable = checkFontAvailability('SimHei');
+            const simsunAvailable = checkFontAvailability('SimSun');
+
+            console.log('SimHei 字体可用: ' + simheiAvailable);
+            console.log('SimSun 字体可用: ' + simsunAvailable);
+
+            // 显示结果
+            const result = document.createElement('div');
+            result.innerHTML = '<h2>字体可用性检查结果</h2>' +
+                               '<p>SimHei 字体可用: ' + (simheiAvailable ? '是' : '否') + '</p>' +
+                               '<p>SimSun 字体可用: ' + (simsunAvailable ? '是' : '否') + '</p>';
+            document.body.appendChild(result);
+        };
+    </script>
+</body>
+</html>
